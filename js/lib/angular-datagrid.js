@@ -1,19 +1,19 @@
 angular.module('StarcounterLib', [])
     .directive('uiDatagrid', function () {
         return {
-            restrict:'A',
-            compile:function compile(tElement, tAttrs, transclude) {
+            restrict: 'A',
+            compile: function compile(tElement, tAttrs, transclude) {
                 var defaultSettings = {
-                    rows:3,
-                    cols:3,
-                    minSpareRows:1,
-                    outsideClickDeselects:false,
-                    autoComplete:[]
+                    rows: 3,
+                    cols: 3,
+                    minSpareRows: 1,
+                    outsideClickDeselects: false,
+                    autoComplete: []
                 };
 
                 var $container = $('<div class="dataTable"></div>');
 
-                return function postLink(scope, element, attrs, controller) {
+                return function link(scope, element, attrs, ngController) {
                     var expression = attrs.datarows;
                     var match = expression.match(/^\s*(.+)\s+in\s+(.*)\s*$/);
 
@@ -48,19 +48,16 @@ angular.module('StarcounterLib', [])
                         switch (type) {
                             case 'autocomplete':
                                 settings.autoComplete.push({
-                                    match:function (row, col) {
-                                        if (col === index) {
-                                            return true;
-                                        }
+                                    match: function (row, col) {
+                                        return (col === index);
                                     },
-                                    source:function (row, col) {
+                                    source: function (row, col) {
                                         var childScope = scope.$new();
                                         childScope.item = $container.data('handsontable').getData()[row];
                                         return childScope.$eval(options);
                                     }
                                 });
                                 break;
-
                             case 'checkbox':
                                 column.type = Handsontable.CheckboxCell;
                                 tmp = $this.attr('checkedTemplate');
@@ -72,7 +69,6 @@ angular.module('StarcounterLib', [])
                                     column.uncheckedTemplate = scope.$eval(tmp); //if undefined then defaults to Boolean true
                                 }
                                 break;
-
                             default:
                                 if (typeof type === 'object') {
                                     column.type = type;
@@ -94,8 +90,9 @@ angular.module('StarcounterLib', [])
                         settings.colHeaders = colHeaders;
                     }
 
-                    settings.rows = collectionData.length;
-                    settings.data = collectionData;
+                    settings.rows = (collectionData) ? collectionData.length : 1;
+                    settings.cols = colHeaders.length || columns.length;
+                    settings.data = collectionData || [];
                     $container.handsontable(settings);
 
                     $container.on('datachange.handsontable', function (event, changes, source) {
@@ -111,10 +108,15 @@ angular.module('StarcounterLib', [])
                         scope.$emit('datagridSelection', $container, r, p, r2, p2);
                     });
 
-                    scope.$watch('dataChange', function (value) {
-                        $container.handsontable('loadData', collectionData);
+                    scope.$watch(collectionName, function (value) {
+                        if (value instanceof Array && value.length > 0) {
+                            settings.rows = value.length || 1;
+                            settings.data = value || [];
+                            $container.handsontable(settings);
+                            //$container.handsontable('loadData', value);
+                        }
                     });
-                }
+                };
             }
         };
     });
